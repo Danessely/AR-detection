@@ -30,7 +30,6 @@ COLOR_DIR = Path("data/frames/frames_pil_color")
 GRAY_DIR = Path("data/frames/frames_pil_gray")
 VIZ_DIR = Path("data/frames/frames_pil_scheme")
 MANIFEST_PATH = Path("data/frames/frames_pil_manifest.json")
-
 VARIABLE = "PWV"
 STEP_HOURS = 24  # каждые N часов (при шаге 3 ч)
 CMAP_NAME = "jet"  # цветовая палитра
@@ -45,14 +44,14 @@ def to_uint8(arr, vmin: float = VMIN, vmax: float = VMAX) -> np.ndarray:
     return (scaled * 255).astype(np.uint8)
 
 
-def vis_color(field: np.ndarray, ts_str: str) -> None:
+def vis_gray(field: np.ndarray, ts_str: str) -> None:
     """Сохраняет оттенки серого для YOLO."""
     gray_uint8 = to_uint8(field)  # (H, W)
     gray_rgb = np.dstack([gray_uint8] * 3)  # (H, W, 3)
     Image.fromarray(gray_rgb).save(GRAY_DIR / f"{VARIABLE}_{ts_str}.png")
 
 
-def vis_gray(field: np.ndarray, ts_str: str, cmap) -> None:
+def vis_color(field: np.ndarray, ts_str: str, cmap) -> None:
     """Сохраняет цветную карту."""
     color_arr = cmap(to_uint8(field) / 255.0)[:, :, :3]  # drop alpha
     color_uint8 = (color_arr * 255).astype(np.uint8)
@@ -124,9 +123,9 @@ def process_nc(nc_path: Path, step: int) -> None:
         field = var.isel(timestamp=idx).T.values
 
         if not gray_path.exists():
-            vis_color(field, ts_str)
+            vis_gray(field, ts_str)
         if not color_path.exists():
-            vis_gray(field, ts_str, cmap)
+            vis_color(field, ts_str, cmap)
         if not viz_path.exists():
             vis_scheme(var, idx, ts_str)
 
