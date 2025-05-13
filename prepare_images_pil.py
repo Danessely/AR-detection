@@ -88,7 +88,7 @@ def vis_scheme(var, idx: int, ts_str: str) -> None:
 def vis_all(field, ts_str, var, idx, cmap):
     vis_gray(field, ts_str)
     vis_color(field, ts_str, cmap)
-    vis_scheme(var, idx)
+    vis_scheme(var, idx, ts_str)
 
 
 # создаём каталоги
