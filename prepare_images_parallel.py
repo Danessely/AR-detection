@@ -12,6 +12,7 @@ from functools import partial
 
 # matplotlib до импорта pyplot
 import matplotlib
+
 matplotlib.use("Agg")  # headless
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -36,23 +37,27 @@ CMAP_NAME = "jet"  # цветовая палитра
 VMIN, VMAX = 0, 60  # диапазон визуализации (0, 99-ый перцентиль)
 NUM_WORKERS = 4  # количество параллелньых процессов
 
+
 # Вспомогательные функции
 def to_uint8(arr, vmin: float = VMIN, vmax: float = VMAX) -> np.ndarray:
     """Нормирует массив -> 0...255 uint8."""
     scaled = np.clip((arr - vmin) / (vmax - vmin), 0, 1)
     return (scaled * 255).astype(np.uint8)
 
+
 def vis_color(field: np.ndarray, ts_str: str) -> None:
     """Сохраняет оттенки серого для YOLO."""
-    gray_uint8 = to_uint8(field) # (H, W)
-    gray_rgb = np.dstack([gray_uint8] * 3) # (H, W, 3)
+    gray_uint8 = to_uint8(field)  # (H, W)
+    gray_rgb = np.dstack([gray_uint8] * 3)  # (H, W, 3)
     Image.fromarray(gray_rgb).save(GRAY_DIR / f"{VARIABLE}_{ts_str}.png")
+
 
 def vis_gray(field: np.ndarray, ts_str: str, cmap) -> None:
     """Сохраняет цветную карту."""
     color_arr = cmap(to_uint8(field) / 255.0)[:, :, :3]  # drop alpha
     color_uint8 = (color_arr * 255).astype(np.uint8)
     Image.fromarray(color_uint8).save(COLOR_DIR / f"{VARIABLE}_{ts_str}.png")
+
 
 def vis_scheme(var, idx: int, ts_str: str) -> None:
     """Сохраняет схему с изолиниями для разметки."""
@@ -70,7 +75,9 @@ def vis_scheme(var, idx: int, ts_str: str) -> None:
     # Изолинии
     levels = np.arange(VMIN, VMAX, 10)
     contours = plt.contour(
-        slice_.lon, slice_.lat, slice_.T.squeeze(),
+        slice_.lon,
+        slice_.lat,
+        slice_.T.squeeze(),
         levels=levels,
         colors="#222222",
         linewidths=0.25,
@@ -82,8 +89,11 @@ def vis_scheme(var, idx: int, ts_str: str) -> None:
     ax.axis("off")
     ax.set_title("")
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    plt.savefig(VIZ_DIR / f"{VARIABLE}_{ts_str}.png", dpi=100, bbox_inches=None, pad_inches=0)
+    plt.savefig(
+        VIZ_DIR / f"{VARIABLE}_{ts_str}.png", dpi=100, bbox_inches=None, pad_inches=0
+    )
     plt.close(fig)
+
 
 # Основная обработка одного файла
 def process_nc(nc_path: Path, step: int) -> None:
@@ -104,8 +114,8 @@ def process_nc(nc_path: Path, step: int) -> None:
 
         # выходные пути
         color_path = COLOR_DIR / base
-        gray_path = GRAY_DIR  / base
-        viz_path = VIZ_DIR   / base
+        gray_path = GRAY_DIR / base
+        viz_path = VIZ_DIR / base
 
         # если все готово, то пропускаем кадр
         if color_path.exists() and gray_path.exists() and viz_path.exists():
@@ -122,6 +132,7 @@ def process_nc(nc_path: Path, step: int) -> None:
 
     ds.close()  # явное закрытие
 
+
 def main() -> None:
     # каталоги
     for d in (COLOR_DIR, GRAY_DIR, VIZ_DIR):
@@ -136,17 +147,19 @@ def main() -> None:
 
     # параллельный запуск
     with ProcessPoolExecutor(max_workers=NUM_WORKERS) as pool:
-        list(tqdm(pool.map(partial(process_nc, step=step), nc_files), total=len(nc_files)))
+        list(
+            tqdm(
+                pool.map(partial(process_nc, step=step), nc_files), total=len(nc_files)
+            )
+        )
 
     # формируем манифест
-    manifest = [
-        {"data": {"image": str(p)}}
-        for p in sorted(COLOR_DIR.glob("*.png"))
-    ]
+    manifest = [{"data": {"image": str(p)}} for p in sorted(COLOR_DIR.glob("*.png"))]
     with open(MANIFEST_PATH, "w", encoding="utf-8") as fp:
         json.dump(manifest, fp, ensure_ascii=False, indent=4)
 
     print(f"\n✅  Готово: {len(manifest)} кадров (RGB+Gray) и манифест {MANIFEST_PATH}")
+
 
 if __name__ == "__main__":
     main()

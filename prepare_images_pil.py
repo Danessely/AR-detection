@@ -48,7 +48,7 @@ def vis_gray(field, ts_str):
     color_name = f"{VARIABLE}_{ts_str}.png"
     color_img.save(COLOR_DIR / color_name)
 
-def vis_scheme(var, idx):
+def vis_scheme(var, idx, ts_str):
     slice_ = var.isel(timestamp=idx)
     fig = plt.figure(figsize=(14.4, 7.2), dpi=100)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree(central_longitude=-160))
