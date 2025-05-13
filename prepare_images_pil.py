@@ -8,6 +8,8 @@
 import json
 from pathlib import Path
 
+import cartopy.crs as ccrs
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -19,6 +21,7 @@ from tqdm import tqdm
 INPUT_DIR = Path("data/src")
 COLOR_DIR = Path("data/frames_pil_color")
 GRAY_DIR = Path("data/frames_pil_gray")
+VIZ_DIR = Path("data/frames_pil_viz")
 MANIFEST_PATH = Path("data/frames_pil_manifest.json")
 VARIABLE = "PWV"
 STEP_HOURS = 24  # каждые N часов (при шаге наблюдений 3 ч)
@@ -28,6 +31,7 @@ VMIN, VMAX = 0, 60  # диапазон визуализации (0, ≈99-ый �
 # создаём каталоги
 COLOR_DIR.mkdir(parents=True, exist_ok=True)
 GRAY_DIR.mkdir(parents=True, exist_ok=True)
+VIZ_DIR.mkdir(parents=True, exist_ok=True)
 
 cmap = cm.get_cmap(CMAP_NAME)
 manifest = []
@@ -59,7 +63,7 @@ for nc in nc_files:
         gray_uint8 = to_uint8(field, VMIN, VMAX)  # (H,W) uint8
         gray_rgb = np.dstack([gray_uint8]*3)  # (H,W,3) дублируем канал
         gray_img = Image.fromarray(gray_rgb)
-        gray_name = f"{VARIABLE}_{ts_str}_gray.png"
+        gray_name = f"{VARIABLE}_{ts_str}.png"
         gray_img.save(GRAY_DIR / gray_name)
 
         # RGB (цветовая карта)
@@ -68,6 +72,44 @@ for nc in nc_files:
         color_img = Image.fromarray(color_uint8)
         color_name = f"{VARIABLE}_{ts_str}.png"
         color_img.save(COLOR_DIR / color_name)
+
+        # vizualizations
+        slice_ = var.isel(timestamp=idx)
+        fig = plt.figure(figsize=(14.4, 7.2), dpi=100)
+        ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree(central_longitude=-160))
+        slice_.T.plot(
+            ax=ax,
+            transform=ccrs.PlateCarree(central_longitude=20),
+            cmap="jet",
+            vmin=VMIN,
+            vmax=VMAX,
+            add_colorbar=False,
+        )
+        # Добавление изолиний
+        levels = np.arange(VMIN, VMAX, 10)
+        contours = plt.contour(
+            slice_.lon,
+            slice_.lat,
+            slice_.T.squeeze(),
+            levels=levels,
+            colors='#222222',
+            linewidths=0.25,
+            transform=ccrs.PlateCarree(central_longitude=20)
+        )
+        plt.clabel(contours, inline=True, fontsize=8, fmt='%d')
+        ax.coastlines(linewidth=0.25)
+        ax.gridlines(draw_labels=False, linewidth=0.25, linestyle='--')
+        ax.axis('off')
+        ax.set_title("")
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        viz_name = f"{VARIABLE}_{ts_str}.png"
+        plt.savefig(
+            VIZ_DIR / viz_name,
+            dpi=100,
+            bbox_inches=None,
+            pad_inches=0,
+            )
+        plt.close(fig)
 
         manifest.append({"data": {"image": f"data/images/data/frames_pil_color/{color_name}"}})
     break
