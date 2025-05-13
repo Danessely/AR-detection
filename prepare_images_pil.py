@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""
+Генерирует две версии кадров из NetCDF:
+  1) RGB с цветной картой для разметки;
+  2) Grayscale для обучения YOLO.
+"""
+
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+from matplotlib import cm
+from PIL import Image
+from tqdm import tqdm
+
+
+INPUT_DIR = Path("data/src")
+COLOR_DIR = Path("data/frames_pil_color")
+GRAY_DIR = Path("data/frames_pil_gray")
+MANIFEST_PATH = Path("data/frames_pil_manifest.json")
+VARIABLE = "PWV"
+STEP_HOURS = 24  # каждые N часов (при шаге наблюдений 3 ч)
+CMAP_NAME = "jet"  # палитра для цветной карты
+VMIN, VMAX = 0, 60  # диапазон визуализации (0, ≈99-ый перцентиль)
+
+# создаём каталоги
+COLOR_DIR.mkdir(parents=True, exist_ok=True)
+GRAY_DIR.mkdir(parents=True, exist_ok=True)
+
+cmap = cm.get_cmap(CMAP_NAME)
+manifest = []
+
+# собираем все .nc
+nc_files = sorted(INPUT_DIR.glob("*.nc"))
+
+def to_uint8(arr, vmin=None, vmax=None):
+    """Нормируем массив -> 0...255 uint8."""
+    scaled = np.clip((arr - vmin) / (vmax - vmin), 0, 1)
+    return (scaled * 255).astype(np.uint8)
+
+for nc in nc_files:
+    print(f"⏳  {nc.name}")
+    ds  = xr.open_dataset(nc)
+    ds = ds.sortby('lon')
+    ds['lon'] = (ds['lon'] - 20) % 360
+    ds = ds.sortby('lon')
+    var = ds[VARIABLE]
+    times = ds['timestamp'].values
+
+    step = STEP_HOURS // 3  # индексы при исходном шаге 3 ч
+    for idx in tqdm(range(0, len(times), step)):
+        time_val = pd.to_datetime(str(times[idx]))
+        ts_str = time_val.strftime("%Y-%m-%d_%H%M")
+        field = var.isel(timestamp=idx).T.values
+
+        # ЧБ
+        gray_uint8 = to_uint8(field, VMIN, VMAX)  # (H,W) uint8
+        gray_rgb = np.dstack([gray_uint8]*3)  # (H,W,3) дублируем канал
+        gray_img = Image.fromarray(gray_rgb)
+        gray_name = f"{VARIABLE}_{ts_str}_gray.png"
+        gray_img.save(GRAY_DIR / gray_name)
+
+        # RGB (цветовая карта)
+        color_arr = cmap(to_uint8(field, VMIN, VMAX) / 255.0)[:, :, :3]  # drop alpha
+        color_uint8 = (color_arr * 255).astype(np.uint8)
+        color_img = Image.fromarray(color_uint8)
+        color_name = f"{VARIABLE}_{ts_str}.png"
+        color_img.save(COLOR_DIR / color_name)
+
+        manifest.append({"data": {"image": f"data/images/data/frames_pil_color/{color_name}"}})
+    break
+
+# сохраняем JSON
+with open(MANIFEST_PATH, "w", encoding="utf-8") as fp:
+    json.dump(manifest, fp, indent=4, ensure_ascii=False)
+
+print(f"\n✅  Готово: {len(manifest)} кадров (RGB+Gray) и манифест {MANIFEST_PATH}")
