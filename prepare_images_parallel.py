@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Генерирует RGB‑, Gray‑ и карт‑схемы из NetCDF параллельно.
-После завершения формирует манифест, обходя директорию с результатами.
+Генерирует три версии кадров из NetCDF в мультипоточном режиме:
+  1) RGB с цветной картой;
+  2) Grayscale;
+  3) Схему для разметки.
 """
 
 import json
@@ -12,7 +14,6 @@ from functools import partial
 
 # matplotlib до импорта pyplot
 import matplotlib
-
 matplotlib.use("Agg")  # headless
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -153,7 +154,11 @@ def main() -> None:
         )
 
     # формируем манифест
-    manifest = [{"data": {"image": str(p)}} for p in sorted(COLOR_DIR.glob("*.png"))]
+    manifest = [{"data": {
+        "image": f"/data/local-files/?d=data/images/{p.name}",
+        "filename": p.name
+        }
+    } for p in sorted(VIZ_DIR.glob("*.png"))]
     with open(MANIFEST_PATH, "w", encoding="utf-8") as fp:
         json.dump(manifest, fp, ensure_ascii=False, indent=4)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Генерирует две версии кадров из NetCDF:
+Генерирует три версии кадров из NetCDF:
   1) RGB с цветной картой;
   2) Grayscale;
   3) Схему для разметки.
@@ -119,7 +119,7 @@ for nc in nc_files:
         filename = f"{VARIABLE}_{ts_str}.png"
         vis_all(field, ts_str, var, idx, cmap)
 
-        manifest.append({"data": {"image": f"data/images/data/frames/frames_pil_color/{filename}"}})
+        manifest.append({"data": {"image": f"/data/local-files/?d=data/images/{filename}"}})
     break
 
 # сохраняем JSON
