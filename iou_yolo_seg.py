@@ -72,7 +72,9 @@ def infer_and_save_mask(model: "YOLO", img_path: str, save_path: str):
     Запускает модель на одном изображении, объединяет все маски для одного класса,
     сохраняет результат и возвращает его как массив NumPy (бинарная маска).
     """
-    res = model.predict(img_path, stream=False, save=False, imgsz=720, conf=0.25, retina_masks=True)[0]
+    res = model.predict(
+        img_path, stream=False, save=False, imgsz=720, conf=0.25, retina_masks=True
+    )[0]
 
     if res.masks is None or res.masks.data is None:
         # Нет детекций - пустая маска
@@ -113,9 +115,7 @@ def main():
     model = YOLO(args.model_path)
 
     image_files = sorted(
-        f
-        for f in os.listdir(args.images_dir)
-        if f.lower().endswith((".png"))
+        f for f in os.listdir(args.images_dir) if f.lower().endswith((".png"))
     )
     if not image_files:
         print(f"Нет изображений в {args.images_dir}")

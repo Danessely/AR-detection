@@ -27,9 +27,7 @@ for split in SPLIT_RATIOS.keys():
     os.makedirs(img_split_dir, exist_ok=True)
     os.makedirs(label_split_dir, exist_ok=True)
 
-all_images = sorted(
-    glob.glob(os.path.join(SOURCE_DIR, "*.png"))
-)
+all_images = sorted(glob.glob(os.path.join(SOURCE_DIR, "*.png")))
 # Оставляем только те изображения, у которых есть разметка
 valid_images = []
 for img_path in all_images:
@@ -43,7 +41,7 @@ blocks = []
 i = 0
 while i < len(valid_images):
     block_size = random.randint(BLOCK_MIN, BLOCK_MAX)
-    block = valid_images[i:i+block_size]
+    block = valid_images[i : i + block_size]
     if len(block) > 0:
         blocks.append(block)
     i += block_size
@@ -73,6 +71,8 @@ for split, files in splits.items():
         dst_label = os.path.join(DEST_LABELS_DIR, split, base + ".txt")
         shutil.copy2(label_path, dst_label)
 
-print(f"Готово. Количество изображений с разметкой: {len(valid_images)} "
-      f"(train: {len(splits['train'])}, val: {len(splits['val'])}, "
-      f"train блоки: {n_train_blocks}, val блоки: {n_val_blocks})")
+print(
+    f"Готово. Количество изображений с разметкой: {len(valid_images)} "
+    f"(train: {len(splits['train'])}, val: {len(splits['val'])}, "
+    f"train блоки: {n_train_blocks}, val блоки: {n_val_blocks})"
+)
