@@ -154,11 +154,15 @@ def main() -> None:
         )
 
     # формируем манифест
-    manifest = [{"data": {
-        "image": f"/data/local-files/?d=data/images/{p.name}",
-        "filename": p.name
+    manifest = [
+        {
+            "data": {
+                "image": f"/data/local-files/?d=data/images/{p.name}",
+                "filename": p.name,
+            }
         }
-    } for p in sorted(VIZ_DIR.glob("*.png"))]
+        for p in sorted(VIZ_DIR.glob("*.png"))
+    ]
     with open(MANIFEST_PATH, "w", encoding="utf-8") as fp:
         json.dump(manifest, fp, ensure_ascii=False, indent=4)
 

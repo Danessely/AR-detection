@@ -85,6 +85,7 @@ def vis_scheme(var, idx: int, ts_str: str) -> None:
     )
     plt.close(fig)
 
+
 def vis_all(field, ts_str, var, idx, cmap):
     vis_gray(field, ts_str)
     vis_color(field, ts_str, cmap)
@@ -104,12 +105,12 @@ nc_files = sorted(INPUT_DIR.glob("*.nc"))
 
 for nc in nc_files:
     print(f"⏳  {nc.name}")
-    ds  = xr.open_dataset(nc)
-    ds = ds.sortby('lon')
-    ds['lon'] = (ds['lon'] - 20) % 360
-    ds = ds.sortby('lon')
+    ds = xr.open_dataset(nc)
+    ds = ds.sortby("lon")
+    ds["lon"] = (ds["lon"] - 20) % 360
+    ds = ds.sortby("lon")
     var = ds[VARIABLE]
-    times = ds['timestamp'].values
+    times = ds["timestamp"].values
 
     step = STEP_HOURS // 3  # индексы при исходном шаге 3 ч
     for idx in tqdm(range(0, len(times), step)):
@@ -119,7 +120,9 @@ for nc in nc_files:
         filename = f"{VARIABLE}_{ts_str}.png"
         vis_all(field, ts_str, var, idx, cmap)
 
-        manifest.append({"data": {"image": f"/data/local-files/?d=data/images/{filename}"}})
+        manifest.append(
+            {"data": {"image": f"/data/local-files/?d=data/images/{filename}"}}
+        )
     break
 
 # сохраняем JSON
